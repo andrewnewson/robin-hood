@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robin Hood</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            padding: 8px;
+            color: #333;
+            width: 100%;
+            overflow-x: hidden;
+        }
+        
+        .container { 
+            max-width: 100%;
+            width: 100%;
+            margin: 0 auto;
+            padding: 0 8px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #2D5016 0%, #1a3009 100%);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            width: 100%;
+        }
+        
+        header h1 { 
+            font-size: 20px; 
+            font-weight: 600; 
+            margin-bottom: 6px;
+            word-wrap: break-word;
+        }
+        
+        .summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid #8B6F47;
+        }
+        
+        .stat-label { font-size: 12px; color: #5a4a34; margin-bottom: 4px; }
+        .stat-value { font-size: 20px; font-weight: 600; }
+        .stat-value.positive { color: #4a7c3c; }
+        .stat-value.negative { color: #8B4513; }
+        
+        .month-range {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            margin-bottom: 0;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.95);
+            word-wrap: break-word;
+            width: 100%;
+        }
+        
+        .balance-card {
+            background: linear-gradient(135deg, #f5f3ef 0%, #e8dfd6 100%);
+            padding: 16px;
+            border-radius: 8px;
+            border: 2px solid #8B6F47;
+            margin-bottom: 16px;
+        }
+        
+        .balance-label { font-size: 12px; color: #5a4a34; margin-bottom: 8px; }
+        .balance-value { font-size: 28px; font-weight: 700; }
+        .balance-value.positive { color: #4a7c3c; }
+        .balance-value.negative { color: #8B4513; }
+        
+        .form-section {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            border: 2px solid #8B6F47;
+            margin-bottom: 16px;
+        }
+        
+        .form-group {
+            margin-bottom: 12px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: #5a4a34;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #D4A574;
+            border-radius: 6px;
+            font-size: 16px;
+            font-family: inherit;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #4a7c3c;
+            box-shadow: 0 0 0 2px rgba(74, 124, 60, 0.1);
+        }
+        
+        textarea { resize: vertical; min-height: 60px; }
+        
+        .category-actions {
+            display: flex; gap: 8px; margin-top: 8px;
+        }
+        
+        .category-actions input { flex: 1; }
+        
+        button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #4a7c3c;
+            color: white;
+            flex: 1;
+        }
+        
+        .btn-primary:hover { background: #3a6130; }
+        .btn-primary:active { transform: scale(0.98); }
+        
+        .btn-secondary {
+            background: #E8DFD6;
+            color: #5a4a34;
+            border: 2px solid #8B6F47;
+        }
+        
+        .btn-secondary:hover { background: #DCD2C8; }
+        
+        .btn-small { padding: 6px 12px; font-size: 12px; }
+        
+        .recent-section {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            border: 2px solid #8B6F47;
+        }
+        
+        .recent-section h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #5a4a34;
+        }
+        
+        .transaction {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 2px solid #E8DFD6;
+            font-size: 13px;
+        }
+        
+        .transaction:last-child { border-bottom: none; }
+        
+        .transaction-info { flex: 1; }
+        .transaction-category { font-weight: 500; color: #5a4a34; }
+        .transaction-date { font-size: 11px; color: #8B6F47; margin-top: 2px; }
+        .transaction-amount { font-weight: 600; }
+        .transaction-amount.income { color: #4a7c3c; }
+        .transaction-amount.spending { color: #8B4513; }
+        
+        .settings-section {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            border: 2px solid #8B6F47;
+            margin-bottom: 16px;
+        }
+        
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding: 8px 0;
+        }
+        
+        .settings-header h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #5a4a34;
+        }
+        
+        .toggle-icon { font-size: 18px; color: #8B6F47; }
+        
+        .settings-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s;
+        }
+        
+        .settings-content.open { max-height: 300px; }
+        
+        .message {
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            display: none;
+        }
+        
+        .message.error {
+            background: #FCE4E4;
+            color: #8B4513;
+            border: 2px solid #D4A574;
+            display: block;
+        }
+        
+        .message.success {
+            background: #E8F3E1;
+            color: #4a7c3c;
+            border: 2px solid #9FBB8A;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏹 Robin Hood</h1>
+            <div class="month-range" id="monthRange">Jan 1 – Jan 31, 2026</div>
+        </header>
+        
+        <div class="summary">
+            <div class="stat-card">
+                <div class="stat-label">Total Income</div>
+                <div class="stat-value positive" id="totalIncome">£0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Spending</div>
+                <div class="stat-value negative" id="totalSpending">£0.00</div>
+            </div>
+        </div>
+        
+        <div class="balance-card">
+            <div class="balance-label">Current Balance</div>
+            <div class="balance-value positive" id="balanceValue">£0.00</div>
+        </div>
+        
+        <div class="form-section">
+            <h2 style="font-size: 16px; margin-bottom: 12px;">Add Transaction</h2>
+            <div id="message" class="message"></div>
+            
+            <div class="form-group">
+                <label>Type</label>
+                <select id="type" onchange="updateCategories()">
+                    <option value="income">Income</option>
+                    <option value="spending">Spending</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Category</label>
+                <select id="category">
+                    <option value="Salary">Salary</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Amount (£)</label>
+                <input type="number" id="amount" placeholder="0.00" step="0.01" min="0">
+            </div>
+            
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="date">
+            </div>
+            
+            <div class="form-group">
+                <label>Notes (optional)</label>
+                <textarea id="notes" placeholder="Add any details..."></textarea>
+            </div>
+            
+            <button class="btn-primary" onclick="addTransaction()">Add Transaction</button>
+            
+            <button class="btn-secondary" style="margin-top: 8px;" onclick="exportToCSV()">Export to CSV</button>
+        </div>
+        
+        <div class="recent-section">
+            <h3>Recent Transactions</h3>
+            <div id="recentList"></div>
+        </div>
+        
+        <div class="settings-section">
+            <div class="settings-header" onclick="toggleSettings()">
+                <h3>⚙️ Settings</h3>
+                <span class="toggle-icon" id="toggleIcon">▼</span>
+            </div>
+            <div class="settings-content" id="settingsContent">
+                <div class="form-group">
+                    <label>Month Start Day (1-31)</label>
+                    <input type="number" id="monthStartDay" min="1" max="31" value="1">
+                </div>
+                <button class="btn-primary" onclick="saveSettings()">Save Settings</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const DB_NAME = 'FinanceTrackerDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'transactions';
+        const SETTINGS_STORE = 'settings';
+        
+        let db;
+        const builtInCategories = {
+            income: ['Salary'],
+            spending: ['Supermarket', 'Lochlan', 'Travel', 'Treat', 'Debt']
+        };
+        
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve();
+                };
+                
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                    }
+                    if (!db.objectStoreNames.contains(SETTINGS_STORE)) {
+                        db.createObjectStore(SETTINGS_STORE, { keyPath: 'key' });
+                    }
+                };
+            });
+        }
+        
+        function getMonthDates() {
+            const startDay = parseInt(localStorage.getItem('monthStartDay')) || 1;
+            const today = new Date();
+            const year = today.getFullYear();
+            let month = today.getMonth();
+            
+            let monthStart = new Date(year, month, startDay);
+            
+            if (today < monthStart) {
+                month = (month - 1 + 12) % 12;
+                monthStart = new Date(year - (month === 11 ? 1 : 0), month, startDay);
+            }
+            
+            let monthEnd = new Date(monthStart);
+            monthEnd.setMonth(monthEnd.getMonth() + 1);
+            monthEnd.setDate(monthEnd.getDate() - 1);
+            
+            return { start: monthStart, end: monthEnd };
+        }
+        
+        function formatDate(date) {
+            const options = { month: 'short', day: 'numeric' };
+            return date.toLocaleDateString('en-GB', options);
+        }
+        
+        function updateMonthRange() {
+            const { start, end } = getMonthDates();
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const startStr = `${monthNames[start.getMonth()]} ${start.getDate()}`;
+            const endStr = `${monthNames[end.getMonth()]} ${end.getDate()}, ${end.getFullYear()}`;
+            document.getElementById('monthRange').textContent = `${startStr} – ${endStr}`;
+        }
+        
+        async function addTransaction() {
+            const type = document.getElementById('type').value;
+            const category = document.getElementById('category').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const date = document.getElementById('date').value;
+            const notes = document.getElementById('notes').value;
+            
+            const messageEl = document.getElementById('message');
+            
+            if (!amount || amount <= 0) {
+                messageEl.className = 'message error';
+                messageEl.textContent = 'Please enter a valid amount';
+                return;
+            }
+            
+            if (!date) {
+                messageEl.className = 'message error';
+                messageEl.textContent = 'Please select a date';
+                return;
+            }
+            
+            const transaction = {
+                type,
+                category,
+                amount: type === 'income' ? amount : -amount,
+                date: new Date(date).toISOString(),
+                notes,
+                synced: false,
+                createdAt: new Date().toISOString()
+            };
+            
+            const tx = db.transaction([STORE_NAME], 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            store.add(transaction);
+            
+            tx.oncomplete = () => {
+                messageEl.className = 'message success';
+                messageEl.textContent = 'Transaction added!';
+                document.getElementById('type').value = 'income';
+                document.getElementById('category').value = 'Salary';
+                document.getElementById('amount').value = '';
+                document.getElementById('date').value = new Date().toISOString().split('T')[0];
+                document.getElementById('notes').value = '';
+                
+                updateSummary();
+                updateRecentTransactions();
+                
+                setTimeout(() => {
+                    messageEl.className = 'message';
+                    messageEl.textContent = '';
+                }, 3000);
+            };
+        }
+        
+        async function updateSummary() {
+            const { start, end } = getMonthDates();
+            
+            const tx = db.transaction([STORE_NAME], 'readonly');
+            const store = tx.objectStore(STORE_NAME);
+            const request = store.getAll();
+            
+            request.onsuccess = () => {
+                const transactions = request.result;
+                const filtered = transactions.filter(t => {
+                    const tDate = new Date(t.date);
+                    return tDate >= start && tDate <= end;
+                });
+                
+                const totalIncome = filtered
+                    .filter(t => t.type === 'income')
+                    .reduce((sum, t) => sum + t.amount, 0);
+                
+                const totalSpending = Math.abs(filtered
+                    .filter(t => t.type === 'spending')
+                    .reduce((sum, t) => sum + t.amount, 0));
+                
+                const balance = totalIncome - totalSpending;
+                
+                document.getElementById('totalIncome').textContent = '£' + totalIncome.toFixed(2);
+                document.getElementById('totalSpending').textContent = '£' + totalSpending.toFixed(2);
+                
+                const balanceEl = document.getElementById('balanceValue');
+                balanceEl.textContent = '£' + Math.abs(balance).toFixed(2);
+                balanceEl.className = 'balance-value ' + (balance >= 0 ? 'positive' : 'negative');
+            };
+        }
+        
+        async function updateRecentTransactions() {
+            const { start, end } = getMonthDates();
+            
+            const tx = db.transaction([STORE_NAME], 'readonly');
+            const store = tx.objectStore(STORE_NAME);
+            const request = store.getAll();
+            
+            request.onsuccess = () => {
+                const transactions = request.result
+                    .filter(t => {
+                        const tDate = new Date(t.date);
+                        return tDate >= start && tDate <= end;
+                    })
+                    .sort((a, b) => new Date(b.date) - new Date(a.date))
+                    .slice(0, 10);
+                
+                const html = transactions.map(t => {
+                    const date = new Date(t.date);
+                    const amountClass = t.type === 'income' ? 'income' : 'spending';
+                    const sign = t.type === 'income' ? '+' : '-';
+                    return `
+                        <div class="transaction">
+                            <div class="transaction-info">
+                                <div class="transaction-category">${t.category}</div>
+                                <div class="transaction-date">${formatDate(date)}</div>
+                            </div>
+                            <div class="transaction-amount ${amountClass}">${sign}£${Math.abs(t.amount).toFixed(2)}</div>
+                        </div>
+                    `;
+                }).join('');
+                
+                document.getElementById('recentList').innerHTML = html || '<p style="color: #999; font-size: 13px;">No transactions yet</p>';
+            };
+        }
+        
+        function toggleSettings() {
+            const content = document.getElementById('settingsContent');
+            const icon = document.getElementById('toggleIcon');
+            content.classList.toggle('open');
+            icon.textContent = content.classList.contains('open') ? '▲' : '▼';
+        }
+        
+        function saveSettings() {
+            const monthStartDay = parseInt(document.getElementById('monthStartDay').value);
+            
+            if (monthStartDay < 1 || monthStartDay > 31) {
+                alert('Month start day must be between 1 and 31');
+                return;
+            }
+            
+            localStorage.setItem('monthStartDay', monthStartDay);
+            updateMonthRange();
+            updateSummary();
+            updateRecentTransactions();
+            
+            const messageEl = document.getElementById('message');
+            messageEl.className = 'message success';
+            messageEl.textContent = 'Settings saved!';
+            setTimeout(() => {
+                messageEl.className = 'message';
+            }, 2000);
+        }
+        
+        function exportToCSV() {
+            const tx = db.transaction([STORE_NAME], 'readonly');
+            const store = tx.objectStore(STORE_NAME);
+            const request = store.getAll();
+            
+            request.onsuccess = () => {
+                const unsyncedTransactions = request.result.filter(t => !t.synced);
+                const messageEl = document.getElementById('message');
+                
+                if (unsyncedTransactions.length === 0) {
+                    messageEl.className = 'message error';
+                    messageEl.textContent = 'No new transactions to export';
+                    setTimeout(() => {
+                        messageEl.className = 'message';
+                    }, 2000);
+                    return;
+                }
+                
+                // Create CSV header
+                let csv = 'Type,Category,Amount,Date,Notes\n';
+                
+                // Add transactions
+                unsyncedTransactions.forEach(t => {
+                    const date = new Date(t.date).toLocaleDateString('en-GB');
+                    const amount = Math.abs(t.amount).toFixed(2);
+                    const notes = t.notes ? `"${t.notes.replace(/"/g, '""')}"` : '';
+                    csv += `${t.type},${t.category},£${amount},${date},${notes}\n`;
+                });
+                
+                // Create blob and download
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                const filename = `Finance_Export_${new Date().toISOString().split('T')[0]}.csv`;
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+                
+                // Mark as synced
+                const updateTx = db.transaction([STORE_NAME], 'readwrite');
+                const updateStore = updateTx.objectStore(STORE_NAME);
+                
+                unsyncedTransactions.forEach(t => {
+                    t.synced = true;
+                    updateStore.put(t);
+                });
+                
+                updateTx.oncomplete = () => {
+                    messageEl.className = 'message success';
+                    messageEl.textContent = `Exported ${unsyncedTransactions.length} transactions`;
+                    setTimeout(() => {
+                        messageEl.className = 'message';
+                    }, 2000);
+                };
+            };
+        }
+        
+        function updateCategories() {
+            const type = document.getElementById('type').value;
+            const categorySelect = document.getElementById('category');
+            const currentValue = categorySelect.value;
+            
+            categorySelect.innerHTML = '';
+            
+            let options = [];
+            
+            if (type === 'income') {
+                options = [...builtInCategories.income, 'Other'];
+            } else {
+                options = [...builtInCategories.spending, 'Other'];
+            }
+            
+            options.forEach(opt => {
+                const el = document.createElement('option');
+                el.value = opt;
+                el.textContent = opt;
+                categorySelect.appendChild(el);
+            });
+            
+            categorySelect.value = currentValue || (type === 'income' ? 'Salary' : 'Supermarket');
+        }
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initDB();
+            document.getElementById('monthStartDay').value = localStorage.getItem('monthStartDay') || '1';
+            document.getElementById('date').valueAsDate = new Date();
+            updateCategories();
+            updateMonthRange();
+            updateSummary();
+            updateRecentTransactions();
+        });
+    </script>
+</body>
+</html>
