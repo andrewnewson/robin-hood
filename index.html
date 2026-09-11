@@ -49,30 +49,34 @@
             display: inline-block;
         }
         
+        /* 3-Column Summary Layout */
         .summary {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
             margin-bottom: 12px;
         }
         
         .stat-card {
             background: white;
-            padding: 14px;
+            padding: 12px 8px;
             border-radius: 8px;
             border: 1px solid #d4c8ba;
+            text-align: center;
         }
         
         .stat-label { 
-            font-size: 12px; 
+            font-size: 11px; 
             color: #6e5e4d; 
             margin-bottom: 4px; 
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
+            line-height: 1.2;
         }
-        .stat-value { font-size: 20px; font-weight: 700; }
+        .stat-value { font-size: 16px; font-weight: 700; }
         .stat-value.positive { color: #2e6622; }
         .stat-value.negative { color: #8a3311; }
+        .stat-value.neutral { color: #5a4a34; }
         
         .balance-card {
             background: #ffffff;
@@ -369,19 +373,24 @@
             <div class="month-range" id="monthRange">Loading...</div>
         </header>
         
+        <!-- Updated 3-stat summary row -->
         <div class="summary">
             <div class="stat-card">
                 <div class="stat-label">Total Income</div>
                 <div class="stat-value positive" id="totalIncome">£0.00</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Total Spending</div>
-                <div class="stat-value negative" id="totalSpending">£0.00</div>
+                <div class="stat-label">Bank Outflow</div>
+                <div class="stat-value negative" id="bankSpending">£0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Spend</div>
+                <div class="stat-value neutral" id="totalSpending">£0.00</div>
             </div>
         </div>
         
         <div class="balance-card">
-            <div class="balance-label">Cash-in-Bank Balance</div>
+            <div class="balance-label">Cash-in-Bank Balance (Income − Bank Outflow)</div>
             <div class="balance-value positive" id="balanceValue">£0.00</div>
         </div>
 
@@ -546,7 +555,6 @@
             const method = document.getElementById('paymentMethod').value;
             const categorySelect = document.getElementById('category');
             
-            // Cannot make debt payments using the credit card itself
             if (method === 'cc' && (categorySelect.value === 'Credit Card Repayment' || categorySelect.value === 'Other Debt / Loans')) {
                 categorySelect.value = 'Supermarket';
             }
@@ -582,12 +590,12 @@
                         
                         const isCC = t.paymentMethod === 'cc';
                         
-                        // Bank cash flow
+                        // Bank account outflow
                         if (!isCC) {
                             bankSpending += t.amount;
                         }
 
-                        // Isolated Credit Card Progress
+                        // Isolated credit card progress
                         if (t.category === 'Credit Card Repayment') {
                             ccRepayments += t.amount;
                         } else if (isCC) {
@@ -598,14 +606,17 @@
                 
                 const cashBalance = income - bankSpending;
                 
+                // Update 3-metric summary
                 document.getElementById('totalIncome').textContent = `£${income.toFixed(2)}`;
+                document.getElementById('bankSpending').textContent = `£${bankSpending.toFixed(2)}`;
                 document.getElementById('totalSpending').textContent = `£${totalSpending.toFixed(2)}`;
                 
+                // Cash-in-Bank Balance card
                 const balanceEl = document.getElementById('balanceValue');
                 balanceEl.textContent = `£${Math.abs(cashBalance).toFixed(2)}`;
                 balanceEl.className = `balance-value ${cashBalance >= 0 ? 'positive' : 'negative'}`;
 
-                // Render Credit Card Tracker
+                // Update Credit Card Progress Card
                 const ccNet = ccRepayments - ccPurchases;
                 const ccProgressEl = document.getElementById('ccProgress');
                 const ccStatusEl = document.getElementById('ccStatus');
