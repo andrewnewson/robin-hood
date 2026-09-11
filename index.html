@@ -86,6 +86,45 @@
         .balance-value { font-size: 30px; font-weight: 700; }
         .balance-value.positive { color: #2e6622; }
         .balance-value.negative { color: #8a3311; }
+
+        .cc-tracker-card {
+            background: #fbf9f6;
+            border: 1px solid #c9baa7;
+            border-left: 4px solid #8B6F47;
+            padding: 14px;
+            border-radius: 8px;
+            margin-bottom: 14px;
+        }
+        
+        .cc-tracker-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 8px;
+        }
+        
+        .cc-tracker-title {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #5a4a34;
+            letter-spacing: 0.5px;
+        }
+        
+        .cc-progress-badge {
+            font-size: 14px;
+            font-weight: 700;
+        }
+        
+        .cc-tracker-subtext {
+            font-size: 12px;
+            color: #6e5e4d;
+            display: flex;
+            justify-content: space-between;
+            border-top: 1px dashed #d4c8ba;
+            padding-top: 6px;
+            margin-top: 6px;
+        }
         
         .form-section, .recent-section, .settings-section {
             background: white;
@@ -212,6 +251,28 @@
         .transaction-category { font-weight: 500; color: #332719; }
         .transaction-date { font-size: 12px; color: #8a7a68; margin-top: 2px; }
         
+        .badge {
+            font-size: 10px;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-weight: 600;
+            margin-left: 6px;
+            vertical-align: middle;
+            text-transform: uppercase;
+        }
+        
+        .badge-cc {
+            background: #fdf3e7;
+            color: #a85817;
+            border: 1px solid #f3d2b2;
+        }
+
+        .badge-bank {
+            background: #f1f3ed;
+            color: #4b663b;
+            border: 1px solid #d4decb;
+        }
+        
         .transaction-notes {
             font-size: 11px;
             color: #6e5e4d;
@@ -320,8 +381,20 @@
         </div>
         
         <div class="balance-card">
-            <div class="balance-label">Current Balance</div>
+            <div class="balance-label">Cash-in-Bank Balance</div>
             <div class="balance-value positive" id="balanceValue">£0.00</div>
+        </div>
+
+        <div class="cc-tracker-card">
+            <div class="cc-tracker-header">
+                <div class="cc-tracker-title">Credit Card Progress</div>
+                <div class="cc-progress-badge" id="ccProgress">£0.00</div>
+            </div>
+            <div id="ccStatus" style="font-size: 12px; font-weight: 500;">No activity</div>
+            <div class="cc-tracker-subtext">
+                <span>Total Repayments: <strong id="ccTotalRepaid">£0.00</strong></span>
+                <span>New CC Spend: <strong id="ccTotalSpent">£0.00</strong></span>
+            </div>
         </div>
         
         <div class="form-section">
@@ -333,6 +406,14 @@
                 <select id="type" onchange="updateCategories()">
                     <option value="income">Income</option>
                     <option value="spending" selected>Spending</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="paymentMethodGroup">
+                <label for="paymentMethod">Paid Via</label>
+                <select id="paymentMethod" onchange="handlePaymentMethodChange()">
+                    <option value="bank" selected>Debit / Bank Account</option>
+                    <option value="cc">Credit Card</option>
                 </select>
             </div>
             
@@ -388,7 +469,16 @@
 
         const categories = {
             income: ['Salary', 'Other'],
-            spending: ['Joint Account', 'Supermarket', 'Family', 'Travel', 'Treat', 'Debt', 'Other']
+            spending: [
+                'Joint Account',
+                'Supermarket',
+                'Family',
+                'Travel',
+                'Treat',
+                'Credit Card Repayment',
+                'Other Debt / Loans',
+                'Other'
+            ]
         };
         
         function initDB() {
@@ -451,6 +541,16 @@
             showAllTransactions = !showAllTransactions;
             refreshViews();
         }
+
+        function handlePaymentMethodChange() {
+            const method = document.getElementById('paymentMethod').value;
+            const categorySelect = document.getElementById('category');
+            
+            // Cannot make debt payments using the credit card itself
+            if (method === 'cc' && (categorySelect.value === 'Credit Card Repayment' || categorySelect.value === 'Other Debt / Loans')) {
+                categorySelect.value = 'Supermarket';
+            }
+        }
         
         async function refreshViews() {
             const { start, end } = getMonthDates();
@@ -468,21 +568,67 @@
                 });
                 
                 let income = 0;
-                let spending = 0;
+                let bankSpending = 0;
+                let totalSpending = 0;
+
+                let ccRepayments = 0;
+                let ccPurchases = 0;
                 
                 activeInRange.forEach(t => {
-                    if (t.type === 'income') income += t.amount;
-                    else spending += t.amount;
+                    if (t.type === 'income') {
+                        income += t.amount;
+                    } else {
+                        totalSpending += t.amount;
+                        
+                        const isCC = t.paymentMethod === 'cc';
+                        
+                        // Bank cash flow
+                        if (!isCC) {
+                            bankSpending += t.amount;
+                        }
+
+                        // Isolated Credit Card Progress
+                        if (t.category === 'Credit Card Repayment') {
+                            ccRepayments += t.amount;
+                        } else if (isCC) {
+                            ccPurchases += t.amount;
+                        }
+                    }
                 });
                 
-                const balance = income - spending;
+                const cashBalance = income - bankSpending;
                 
                 document.getElementById('totalIncome').textContent = `£${income.toFixed(2)}`;
-                document.getElementById('totalSpending').textContent = `£${spending.toFixed(2)}`;
+                document.getElementById('totalSpending').textContent = `£${totalSpending.toFixed(2)}`;
                 
                 const balanceEl = document.getElementById('balanceValue');
-                balanceEl.textContent = `£${Math.abs(balance).toFixed(2)}`;
-                balanceEl.className = `balance-value ${balance >= 0 ? 'positive' : 'negative'}`;
+                balanceEl.textContent = `£${Math.abs(cashBalance).toFixed(2)}`;
+                balanceEl.className = `balance-value ${cashBalance >= 0 ? 'positive' : 'negative'}`;
+
+                // Render Credit Card Tracker
+                const ccNet = ccRepayments - ccPurchases;
+                const ccProgressEl = document.getElementById('ccProgress');
+                const ccStatusEl = document.getElementById('ccStatus');
+                
+                document.getElementById('ccTotalRepaid').textContent = `£${ccRepayments.toFixed(2)}`;
+                document.getElementById('ccTotalSpent').textContent = `£${ccPurchases.toFixed(2)}`;
+
+                if (ccRepayments === 0 && ccPurchases === 0) {
+                    ccProgressEl.textContent = '£0.00';
+                    ccProgressEl.className = 'cc-progress-badge';
+                    ccStatusEl.textContent = 'No credit card transactions this month';
+                    ccStatusEl.style.color = '#6e5e4d';
+                } else if (ccNet >= 0) {
+                    ccProgressEl.textContent = `+£${ccNet.toFixed(2)}`;
+                    ccProgressEl.className = 'cc-progress-badge positive';
+                    ccStatusEl.textContent = `Progress: Card balance reduced by £${ccNet.toFixed(2)}`;
+                    ccStatusEl.style.color = '#2e6622';
+                } else {
+                    ccProgressEl.textContent = `-£${Math.abs(ccNet).toFixed(2)}`;
+                    ccProgressEl.className = 'cc-progress-badge negative';
+                    ccStatusEl.textContent = `Warning: Card balance increased by £${Math.abs(ccNet).toFixed(2)}`;
+                    ccStatusEl.style.color = '#8a3311';
+                }
                 
                 const sorted = activeInRange.sort((a, b) => new Date(b.date) - new Date(a.date));
                 const toggleBtn = document.getElementById('btnToggleAll');
@@ -509,11 +655,16 @@
                     const notesHTML = cleanNotes 
                         ? `<div class="transaction-notes">“${escapeHTML(cleanNotes)}”</div>` 
                         : '';
+                    
+                    const isCC = t.paymentMethod === 'cc';
+                    const badge = t.type === 'income' 
+                        ? '' 
+                        : `<span class="badge ${isCC ? 'badge-cc' : 'badge-bank'}">${isCC ? 'Credit Card' : 'Bank'}</span>`;
 
                     return `
                         <div class="transaction">
                             <div class="transaction-info">
-                                <div class="transaction-category">${escapeHTML(t.category)}</div>
+                                <div class="transaction-category">${escapeHTML(t.category)} ${badge}</div>
                                 <div class="transaction-date">${new Date(t.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
                                 ${notesHTML}
                             </div>
@@ -541,6 +692,7 @@
         
         async function addTransaction() {
             const type = document.getElementById('type').value;
+            const paymentMethod = type === 'spending' ? document.getElementById('paymentMethod').value : 'bank';
             const category = document.getElementById('category').value;
             const amount = parseFloat(document.getElementById('amount').value);
             const dateVal = document.getElementById('date').value;
@@ -555,12 +707,18 @@
                 showMessage('Please choose a valid date.', true);
                 return;
             }
+
+            if ((category === 'Credit Card Repayment' || category === 'Other Debt / Loans') && paymentMethod === 'cc') {
+                showMessage('Debt payments cannot be made using a credit card.', true);
+                return;
+            }
             
             const [y, m, d] = dateVal.split('-').map(Number);
             const entryDate = new Date(y, m - 1, d, 12, 0, 0).toISOString();
             
             const transaction = {
                 type,
+                paymentMethod,
                 category,
                 amount: Math.round(amount * 100) / 100,
                 date: entryDate,
@@ -631,11 +789,11 @@
                     return;
                 }
                 
-                let csv = 'Type,Category,Amount,Date,Notes\r\n';
+                let csv = 'Type,PaymentMethod,Category,Amount,Date,Notes\r\n';
                 unsynced.forEach(t => {
                     const formattedDate = new Date(t.date).toLocaleDateString('en-GB');
                     const cleanNotes = (t.notes || '').replace(/"/g, '""');
-                    csv += `"${t.type}","${t.category}","${t.amount.toFixed(2)}","${formattedDate}","${cleanNotes}"\r\n`;
+                    csv += `"${t.type}","${t.paymentMethod || 'bank'}","${t.category}","${t.amount.toFixed(2)}","${formattedDate}","${cleanNotes}"\r\n`;
                 });
                 
                 const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -662,6 +820,14 @@
         function updateCategories() {
             const type = document.getElementById('type').value;
             const categorySelect = document.getElementById('category');
+            const paymentMethodGroup = document.getElementById('paymentMethodGroup');
+            
+            if (type === 'income') {
+                paymentMethodGroup.style.display = 'none';
+            } else {
+                paymentMethodGroup.style.display = 'block';
+            }
+            
             categorySelect.innerHTML = '';
             
             categories[type].forEach(cat => {
