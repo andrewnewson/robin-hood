@@ -104,6 +104,8 @@
         
         .form-group {
             margin-bottom: 12px;
+            width: 100%;
+            overflow: hidden;
         }
         
         .form-group label {
@@ -124,14 +126,28 @@
             font-size: 15px;
             font-family: inherit;
             background-color: #fff;
+            box-sizing: border-box;
         }
         
-        /* Strict bounds for date input */
+        /* WebKit/iOS date container and pseudo-element overrides */
         input[type="date"] {
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
             display: block;
+            margin: 0;
             -webkit-appearance: none;
             -moz-appearance: none;
             appearance: none;
+        }
+
+        input[type="date"]::-webkit-date-and-time-value {
+            text-align: left;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            min-height: 1.2em;
         }
         
         input:focus, select:focus, textarea:focus {
@@ -348,7 +364,7 @@
         
         function getMonthDates() {
             let startDay = parseInt(localStorage.getItem('monthStartDay'), 10) || 1;
-            if (startDay > 28) startDay = 28; // Capped to avoid calendar month roll-over bugs
+            if (startDay > 28) startDay = 28;
             
             const now = new Date();
             const year = now.getFullYear();
@@ -415,7 +431,6 @@
                 balanceEl.textContent = `£${Math.abs(balance).toFixed(2)}`;
                 balanceEl.className = `balance-value ${balance >= 0 ? 'positive' : 'negative'}`;
                 
-                // Recent transactions (latest 10)
                 const sorted = inRange.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
                 
                 if (sorted.length === 0) {
@@ -464,7 +479,6 @@
                 return;
             }
             
-            // Construct local ISO date string
             const [y, m, d] = dateVal.split('-').map(Number);
             const entryDate = new Date(y, m - 1, d, 12, 0, 0).toISOString();
             
@@ -560,7 +574,6 @@
             const savedDay = localStorage.getItem('monthStartDay') || '1';
             document.getElementById('monthStartDay').value = savedDay;
             
-            // Set date picker to local current date
             const today = new Date();
             const localDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
             document.getElementById('date').value = localDate;
