@@ -129,7 +129,6 @@
             box-sizing: border-box;
         }
         
-        /* WebKit/iOS date container and pseudo-element overrides */
         input[type="date"] {
             width: 100%;
             max-width: 100%;
@@ -187,6 +186,17 @@
         
         .btn-secondary:hover { background: #dfd5c7; }
         
+        .btn-toggle-view {
+            background: transparent;
+            color: #8B6F47;
+            border: 1px dashed #d4c8ba;
+            margin-top: 10px;
+            padding: 8px 12px;
+            font-size: 13px;
+        }
+        
+        .btn-toggle-view:hover { background: #faf8f5; border-color: #8B6F47; }
+        
         .transaction {
             display: flex;
             justify-content: space-between;
@@ -198,12 +208,37 @@
         
         .transaction:last-child { border-bottom: none; }
         
-        .transaction-info { flex: 1; padding-right: 12px; }
+        .transaction-info { flex: 1; padding-right: 10px; }
         .transaction-category { font-weight: 500; color: #332719; }
         .transaction-date { font-size: 12px; color: #8a7a68; margin-top: 2px; }
+        
+        .transaction-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
         .transaction-amount { font-weight: 600; white-space: nowrap; }
         .transaction-amount.income { color: #2e6622; }
         .transaction-amount.spending { color: #8a3311; }
+        
+        .btn-delete {
+            width: auto;
+            padding: 4px 8px;
+            font-size: 12px;
+            color: #8a7a68;
+            background: #faf8f5;
+            border: 1px solid #d4c8ba;
+            border-radius: 4px;
+            cursor: pointer;
+            line-height: 1;
+        }
+        
+        .btn-delete:hover {
+            color: #8a3311;
+            background: #fce4e4;
+            border-color: #e0b0b0;
+        }
         
         details.settings-section summary {
             font-size: 14px;
@@ -318,8 +353,9 @@
         </div>
         
         <div class="recent-section">
-            <div class="section-title">Recent Transactions</div>
+            <div class="section-title">Transactions</div>
             <div id="recentList"></div>
+            <button id="btnToggleAll" class="btn-toggle-view" style="display: none;" onclick="toggleShowAll()"></button>
         </div>
         
         <details class="settings-section">
@@ -340,6 +376,8 @@
         const STORE_NAME = 'transactions';
         
         let db;
+        let showAllTransactions = false;
+
         const categories = {
             income: ['Salary', 'Other'],
             spending: ['Joint Account', 'Supermarket', 'Family', 'Travel', 'Treat', 'Debt', 'Other']
@@ -400,6 +438,11 @@
                 msg.textContent = '';
             }, 3000);
         }
+
+        function toggleShowAll() {
+            showAllTransactions = !showAllTransactions;
+            refreshViews();
+        }
         
         async function refreshViews() {
             const { start, end } = getMonthDates();
@@ -409,7 +452,9 @@
             
             request.onsuccess = () => {
                 const all = request.result;
-                const inRange = all.filter(t => {
+                
+                const activeInRange = all.filter(t => {
+                    if (t.deleted) return false;
                     const d = new Date(t.date);
                     return d >= start && d <= end;
                 });
@@ -417,7 +462,7 @@
                 let income = 0;
                 let spending = 0;
                 
-                inRange.forEach(t => {
+                activeInRange.forEach(t => {
                     if (t.type === 'income') income += t.amount;
                     else spending += t.amount;
                 });
@@ -431,21 +476,37 @@
                 balanceEl.textContent = `£${Math.abs(balance).toFixed(2)}`;
                 balanceEl.className = `balance-value ${balance >= 0 ? 'positive' : 'negative'}`;
                 
-                const sorted = inRange.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
-                
+                const sorted = activeInRange.sort((a, b) => new Date(b.date) - new Date(a.date));
+                const toggleBtn = document.getElementById('btnToggleAll');
+
                 if (sorted.length === 0) {
                     document.getElementById('recentList').innerHTML = '<p style="color: #8a7a68; font-size: 13px;">No transactions recorded this period.</p>';
+                    toggleBtn.style.display = 'none';
                     return;
                 }
+
+                const visible = showAllTransactions ? sorted : sorted.slice(0, 10);
                 
-                document.getElementById('recentList').innerHTML = sorted.map(t => `
+                if (sorted.length > 10) {
+                    toggleBtn.style.display = 'block';
+                    toggleBtn.textContent = showAllTransactions 
+                        ? 'Show Recent 10 Only' 
+                        : `Show All (${sorted.length}) Transactions`;
+                } else {
+                    toggleBtn.style.display = 'none';
+                }
+
+                document.getElementById('recentList').innerHTML = visible.map(t => `
                     <div class="transaction">
                         <div class="transaction-info">
                             <div class="transaction-category">${escapeHTML(t.category)}</div>
                             <div class="transaction-date">${new Date(t.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
                         </div>
-                        <div class="transaction-amount ${t.type}">
-                            ${t.type === 'income' ? '+' : '-'}£${t.amount.toFixed(2)}
+                        <div class="transaction-actions">
+                            <div class="transaction-amount ${t.type}">
+                                ${t.type === 'income' ? '+' : '-'}£${t.amount.toFixed(2)}
+                            </div>
+                            <button class="btn-delete" onclick="softDeleteTransaction(${t.id})" title="Remove item">✕</button>
                         </div>
                     </div>
                 `).join('');
@@ -489,6 +550,7 @@
                 date: entryDate,
                 notes,
                 synced: false,
+                deleted: false,
                 createdAt: new Date().toISOString()
             };
             
@@ -500,6 +562,32 @@
                 document.getElementById('amount').value = '';
                 document.getElementById('notes').value = '';
                 refreshViews();
+            };
+        }
+
+        function softDeleteTransaction(id) {
+            if (!confirm('Are you sure you want to remove this transaction?')) return;
+
+            const tx = db.transaction([STORE_NAME], 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            const getRequest = store.get(id);
+
+            getRequest.onsuccess = () => {
+                const item = getRequest.result;
+                if (!item) return;
+
+                item.deleted = true;
+                item.deletedAt = new Date().toISOString();
+                store.put(item);
+            };
+
+            tx.oncomplete = () => {
+                showMessage('Transaction removed.');
+                refreshViews();
+            };
+
+            tx.onerror = () => {
+                showMessage('Could not remove transaction.', true);
             };
         }
         
@@ -521,7 +609,7 @@
             const request = store.getAll();
             
             request.onsuccess = () => {
-                const unsynced = request.result.filter(t => !t.synced);
+                const unsynced = request.result.filter(t => !t.synced && !t.deleted);
                 if (unsynced.length === 0) {
                     showMessage('No new unexported transactions.', true);
                     return;
